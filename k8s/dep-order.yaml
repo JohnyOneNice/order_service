@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: order-service # Service_user.yaml будет смотреть на этот лейбл Подов
+    spec:
+      containers:
+        - name: orderproject
+          image: johnynice/orderproject3:1
+          #imagePullPolicy: IfNotPresent #Использовать образ из DockerHUb, если не нашли локально
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_USER
+              value: myuser
+            - name: POSTGRES_PASSWORD
+              value: mypassword
