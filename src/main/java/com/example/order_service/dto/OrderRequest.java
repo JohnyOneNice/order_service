@@ -8,4 +8,5 @@ import java.util.UUID;
 public class OrderRequest {
     private UUID userId;
     private Long price;
+    private String productCode;
 }
