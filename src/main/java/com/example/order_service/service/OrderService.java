@@ -1,15 +1,16 @@
 package com.example.order_service.service;
 
 import com.example.order_service.client.BillingClient;
+import com.example.order_service.client.NotificationsClient;
 import com.example.order_service.client.InventoryClient;
+import com.example.order_service.client.DeliveryClient;
 import com.example.order_service.dto.*;
 import com.example.order_service.model.Order;
 import com.example.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import com.example.order_service.client.NotificationsClient;
-
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -20,6 +21,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final NotificationsClient notificationsClient;
     private final InventoryClient inventoryClient;
+    private final DeliveryClient deliveryClient;
 
 
     public OrderResponse createOrder(OrderRequest request) {
@@ -47,6 +49,17 @@ public class OrderService {
             status = order.getStatus();
 
             message = "🎉 Заказ №" + orderId + " успешно оформлен на сумму: " + request.getPrice() + " у.е.";
+
+            // Резервирование курьера (доставка)
+            try {
+                deliveryClient.reserveDelivery(new DeliveryRequest(
+                        orderId,
+                        "Курьер #42", // можно заменить на рандом или выбрать из списка
+                        LocalDateTime.now().plusHours(2)
+                ));
+            } catch (Exception delEx) {
+                System.err.println("⚠️ Ошибка при резервировании доставки: " + delEx.getMessage());
+            }
 
     } catch (Exception ex) {
 
