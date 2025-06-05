@@ -11,5 +11,8 @@ import java.util.UUID;
 public interface BillingClient {
 
     @PostMapping("/api/billing/withdraw/{userId}")
-    void withdraw(@PathVariable("userId") UUID userId, @RequestParam("amount") Long amount);
+    void withdraw(@PathVariable UUID userId, @RequestParam Long amount);
+
+    @PostMapping("/api/billing/refund/{userId}")
+    void refund(@PathVariable UUID userId, @RequestParam Long amount);
 }

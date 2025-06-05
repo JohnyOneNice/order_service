@@ -4,7 +4,9 @@ import com.example.order_service.client.BillingClient;
 import com.example.order_service.client.NotificationsClient;
 import com.example.order_service.client.InventoryClient;
 import com.example.order_service.client.DeliveryClient;
+
 import com.example.order_service.dto.*;
+
 import com.example.order_service.model.Order;
 import com.example.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,59 +28,82 @@ public class OrderService {
 
     public OrderResponse createOrder(OrderRequest request) {
         boolean success = true;
-        UUID orderId = null;
-        String status = null;
-        String message = null;
+        boolean billingDone = false;
+        boolean inventoryDone = false;
+        boolean deliveryDone = false;
+
+        UUID orderId = UUID.randomUUID();
+        String status = "DECLINED";
+        String message;
+
 
         try {
-            // Резерв товара через Inventory-service
-            inventoryClient.reserve(new ProductReserveRequest("product-123", 1)); // можно передавать из запроса
 
-            // Списание средств через billing-service
+            // Шаг 1: списание средств с кошелька пользователя через billing-service
             billingClient.withdraw(request.getUserId(), request.getPrice());
-
-            // Создаём заказ (сохраняем в БД)
-            Order order = Order.builder()
-                .userId(request.getUserId())
-                .price(request.getPrice())
-                .status("PAID")
-                .build();
-
-            order = orderRepository.save(order);
-            orderId = order.getId();
-            status = order.getStatus();
-
-            message = "🎉 Заказ №" + orderId + " успешно оформлен на сумму: " + request.getPrice() + " у.е.";
-
-            // Резервирование курьера (доставка)
-            try {
-                deliveryClient.reserveDelivery(new DeliveryRequest(
-                        orderId,
-                        "Курьер #42", // можно заменить на рандом или выбрать из списка
-                        LocalDateTime.now().plusHours(2)
-                ));
-            } catch (Exception delEx) {
-                System.err.println("⚠️ Ошибка при резервировании доставки: " + delEx.getMessage());
-            }
-
-    } catch (Exception ex) {
-
-        // Биллинг вернул ошибку
-        success = false;
-        status = "DECLINED";
-        message = "❌ Не удалось оформить заказ: недостаточно средств или ошибка оплаты.";
-    }
-
-        // Отправка уведомления через notifications-service
-        try {
-            notificationsClient.sendNotification(new NotificationRequest(
-                    request.getUserId(),
-                    message
-            ));
-        } catch (Exception notifyEx) {
-            System.err.println("Ошибка при отправке уведомления: " + notifyEx.getMessage());
+            billingDone = true;
+        } catch (Exception e) {
+            message = "❌ Недостаточно средств: " + e.getMessage();
+            sendNotification(request.getUserId(), message);
+            return buildFailedOrderResponse(null, status);
         }
 
+        try {
+            // Шаг 2: резервирование товара через Inventory-service
+            inventoryClient.reserve(new ProductReserveRequest(request.getProductCode(), 1));
+            inventoryDone = true;
+        } catch (Exception e) {
+            message = "❌ Товар недоступен: " + e.getMessage();
+            if (billingDone) billingClient.refund(request.getUserId(), request.getPrice());
+            sendNotification(request.getUserId(), message);
+            return buildFailedOrderResponse(null, status);
+        }
+
+        try {
+            // Шаг 3: резервирование доставки (курьер + слот времени)
+            deliveryClient.reserveDelivery(new DeliveryRequest(
+                    orderId,
+                    "Курьер #1",
+                    LocalDateTime.now().plusHours(2)
+            ));
+            deliveryDone = true;
+        } catch (Exception e) {
+            message = "❌ Нет доступного курьера: " + e.getMessage();
+            if (inventoryDone) inventoryClient.release(new ProductReleaseRequest(request.getProductCode(), 1));
+            if (billingDone) billingClient.refund(request.getUserId(), request.getPrice());
+            sendNotification(request.getUserId(), message);
+            return buildFailedOrderResponse(null, status);
+        }
+
+            // Шаг 4: Успешный заказ
+            Order order = Order.builder()
+                    .id(orderId)
+                    .userId(request.getUserId())
+                    .price(request.getPrice())
+                    .status("PAID")
+                    .build();
+            orderRepository.save(order);
+
+        status = "PAID";
+        message = "🎉 Заказ №" + orderId + " успешно оформлен!";
+        sendNotification(request.getUserId(), message);
+
+        return OrderResponse.builder()
+                .orderId(orderId)
+                .status(status)
+                .build();
+    }
+
+    private void sendNotification(UUID userId, String message) {
+        try {
+            notificationsClient.sendNotification(
+                    new NotificationRequest(userId, message));
+        } catch (Exception e) {
+            System.err.println("⚠️ Уведомление не отправлено: " + e.getMessage());
+        }
+    }
+
+    private OrderResponse buildFailedOrderResponse(UUID orderId, String status) {
         return OrderResponse.builder()
                 .orderId(orderId)
                 .status(status)
