@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redpanda
+  namespace: default
+spec:
+  serviceName: redpanda
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redpanda
+  template:
+    metadata:
+      labels:
+        app: redpanda
+    spec:
+      containers:
+        - name: redpanda
+          image: docker.redpanda.com/redpandadata/redpanda-unstable:v25.1.1-rc1
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /usr/bin/rpk redpanda start \
+              --kafka-addr PLAINTEXT://0.0.0.0:29092,PLAINTEXT://0.0.0.0:9092 \
+              --advertise-kafka-addr PLAINTEXT://redpanda-0.redpanda.default.svc.cluster.local:29092,PLAINTEXT://redpanda.default.svc.cluster.local:9092 \
+              --smp 1 \
+              --memory 1G \
+              --mode dev-container \
+              --set redpanda.enable_transactions=true \
+              --set redpanda.enable_idempotence=true \
+              --set redpanda.auto_create_topics_enabled=true
+          ports:
+            - containerPort: 9092
+              name: kafka-external
+            - containerPort: 29092
+              name: kafka-internal
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"

@@ -9,4 +9,6 @@ import java.util.UUID;
 public class OrderResponse {
     private UUID orderId;
     private String status;
+    private Long price;
+    private String productId;
 }

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redpanda-console
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redpanda-console
+  template:
+    metadata:
+      labels:
+        app: redpanda-console
+    spec:
+      containers:
+        - name: redpanda-console
+          image: docker.redpanda.com/redpandadata/console:v2.2.2
+          env:
+            - name: KAFKA_BROKERS
+              value: "redpanda.default.svc.cluster.local:9092"
+            - name: CONFIG_FILEPATH
+              value: "/tmp/config.yml"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /tmp/config.yml
+              subPath: config.yml
+      volumes:
+        - name: config
+          configMap:
+            name: redpanda-console-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redpanda-console-config
+  namespace: default
+data:
+  config.yml: |
+    kafka:
+      brokers: ["redpanda.default.svc.cluster.local:9092"]
+      tls:
+        enabled: false
+    connect:
+      enabled: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redpanda-console
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  selector:
+    app: redpanda-console

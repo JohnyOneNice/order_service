@@ -42,12 +42,24 @@
             <artifactId>lombok</artifactId>
         </dependency>
 
-        <!-- OpenFeign (если понадобится) -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-            <version>4.2.1</version>
-        </dependency>
+<!--        &lt;!&ndash; OpenFeign (если понадобится) &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.cloud</groupId>-->
+<!--            <artifactId>spring-cloud-starter-openfeign</artifactId>-->
+<!--            <version>4.2.1</version>-->
+<!--        </dependency>-->
+
+<!--        &lt;!&ndash; Kafka support &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.kafka</groupId>-->
+<!--            <artifactId>spring-kafka</artifactId>-->
+<!--        </dependency>-->
+
+        <!-- JSON сериализация событий -->
+<!--        <dependency>-->
+<!--            <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--            <artifactId>jackson-databind</artifactId>-->
+<!--        </dependency>-->
 
         <!-- Валидация -->
         <dependency>
