@@ -24,5 +24,6 @@ public class Order {
     private String status; // CREATED, DECLINED, PROCESSED и т.д.
     private String productId;
     private int productCount;
+    private String idempotencyKey;
 
 }
