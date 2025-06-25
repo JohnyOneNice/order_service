@@ -16,19 +16,30 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse createOrder(OrderRequest request) {
-        Order order = new Order();
-        order.setUserId(request.getUserId());
-        order.setProductId(request.getProductId());
-        order.setProductCount(request.getProductCount());
-        order.setPrice(request.getPrice());
-        order.setStatus("Pending");
-        order = orderRepository.save(order);
-        return OrderResponse.builder()
-                .orderId(order.getId())
-                .status(order.getStatus())
-                .price(order.getPrice())
-                .productId(order.getProductId())
-                .build();
+    public OrderResponse createOrder(OrderRequest request, String idempotencyKey) {
+        // Проверяем, есть ли уже заказ с таким токеном
+        return orderRepository.findByIdempotencyKey(idempotencyKey)
+                .map(order -> OrderResponse.builder()
+                        .orderId(order.getId())
+                        .status(order.getStatus())
+                        .price(order.getPrice())
+                        .productId(order.getProductId())
+                        .build())
+                .orElseGet(() -> {
+                    Order order = new Order();
+                    order.setUserId(request.getUserId());
+                    order.setProductId(request.getProductId());
+                    order.setProductCount(request.getProductCount());
+                    order.setPrice(request.getPrice());
+                    order.setStatus("Pending");
+                    order.setIdempotencyKey(idempotencyKey);
+                    order = orderRepository.save(order);
+                    return OrderResponse.builder()
+                            .orderId(order.getId())
+                            .status(order.getStatus())
+                            .price(order.getPrice())
+                            .productId(order.getProductId())
+                            .build();
+                });
     }
 }
