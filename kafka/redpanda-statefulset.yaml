@@ -39,3 +39,14 @@ spec:
             requests:
               memory: "1Gi"
               cpu: "500m"
+          volumeMounts:
+            - name: datadir
+              mountPath: /var/lib/redpanda/data
+  volumeClaimTemplates:
+    - metadata:
+        name: datadir
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 2Gi
