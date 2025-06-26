@@ -2,17 +2,22 @@ package com.example.order_service.service;
 
 import com.example.order_service.dto.OrderRequest;
 import com.example.order_service.dto.OrderResponse;
+import com.example.order_service.dto.OrderCreatedEvent;
 import com.example.order_service.model.Order;
 import com.example.order_service.repository.OrderRepository;
+import com.example.order_service.service.OrderEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrderService {
     private final OrderRepository orderRepository;
+    private final OrderEventPublisher orderEventPublisher;
 
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(OrderRepository orderRepository, OrderEventPublisher orderEventPublisher) {
         this.orderRepository = orderRepository;
+        this.orderEventPublisher = orderEventPublisher;
     }
 
     @Transactional
@@ -33,7 +38,22 @@ public class OrderService {
                     order.setPrice(request.getPrice());
                     order.setStatus("Pending");
                     order.setIdempotencyKey(idempotencyKey);
-                    order = orderRepository.save(order);
+                    try {
+                        order = orderRepository.save(order);
+                    } catch (DataIntegrityViolationException e) {
+                        order = orderRepository.findByIdempotencyKey(idempotencyKey).orElseThrow();
+                    }
+                    // Отправка события OrderCreated
+                    OrderCreatedEvent event = OrderCreatedEvent.builder()
+                            .orderId(order.getId())
+                            .userId(order.getUserId())
+                            .productId(order.getProductId())
+                            .productCount(order.getProductCount())
+                            .price(order.getPrice())
+                            .status(order.getStatus())
+                            .idempotencyKey(order.getIdempotencyKey())
+                            .build();
+                    orderEventPublisher.publishOrderCreated(event);
                     return OrderResponse.builder()
                             .orderId(order.getId())
                             .status(order.getStatus())

@@ -49,11 +49,11 @@
 <!--            <version>4.2.1</version>-->
 <!--        </dependency>-->
 
-<!--        &lt;!&ndash; Kafka support &ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.kafka</groupId>-->
-<!--            <artifactId>spring-kafka</artifactId>-->
-<!--        </dependency>-->
+        <!-- Kafka support -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
 
         <!-- JSON сериализация событий -->
 <!--        <dependency>-->
