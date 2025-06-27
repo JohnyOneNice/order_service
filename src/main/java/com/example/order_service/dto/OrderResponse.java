@@ -11,4 +11,6 @@ public class OrderResponse {
     private String status;
     private Long price;
     private String productId;
+    private Long deliverySlotId;
+    private java.time.LocalDate deliveryDate;
 }

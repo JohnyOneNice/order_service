@@ -25,5 +25,7 @@ public class Order {
     private String productId;
     private int productCount;
     private String idempotencyKey;
+    private Long deliverySlotId;
+    private java.time.LocalDate deliveryDate;
 
 }

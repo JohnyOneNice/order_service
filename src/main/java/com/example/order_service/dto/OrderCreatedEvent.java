@@ -19,4 +19,6 @@ public class OrderCreatedEvent {
     private Long price;
     private String status;
     private String idempotencyKey;
+    private Long deliverySlotId;
+    private java.time.LocalDate deliveryDate;
 } 

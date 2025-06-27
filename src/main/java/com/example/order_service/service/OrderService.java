@@ -29,6 +29,8 @@ public class OrderService {
                         .status(order.getStatus())
                         .price(order.getPrice())
                         .productId(order.getProductId())
+                        .deliverySlotId(order.getDeliverySlotId())
+                        .deliveryDate(order.getDeliveryDate())
                         .build())
                 .orElseGet(() -> {
                     Order order = new Order();
@@ -38,6 +40,8 @@ public class OrderService {
                     order.setPrice(request.getPrice());
                     order.setStatus("Pending");
                     order.setIdempotencyKey(idempotencyKey);
+                    order.setDeliverySlotId(request.getDeliverySlotId());
+                    order.setDeliveryDate(request.getDeliveryDate());
                     try {
                         order = orderRepository.save(order);
                     } catch (DataIntegrityViolationException e) {
@@ -52,6 +56,8 @@ public class OrderService {
                             .price(order.getPrice())
                             .status(order.getStatus())
                             .idempotencyKey(order.getIdempotencyKey())
+                            .deliverySlotId(order.getDeliverySlotId())
+                            .deliveryDate(order.getDeliveryDate())
                             .build();
                     orderEventPublisher.publishOrderCreated(event);
                     return OrderResponse.builder()
@@ -59,6 +65,8 @@ public class OrderService {
                             .status(order.getStatus())
                             .price(order.getPrice())
                             .productId(order.getProductId())
+                            .deliverySlotId(order.getDeliverySlotId())
+                            .deliveryDate(order.getDeliveryDate())
                             .build();
                 });
     }

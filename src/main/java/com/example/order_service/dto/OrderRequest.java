@@ -10,4 +10,6 @@ public class OrderRequest {
     private Long price;
     private String productId;
     private int productCount;
+    private Long deliverySlotId;
+    private java.time.LocalDate deliveryDate;
 }
