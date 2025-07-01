@@ -27,5 +27,7 @@ public class Order {
     private String idempotencyKey;
     private Long deliverySlotId;
     private java.time.LocalDate deliveryDate;
+    @Column(unique = true)
+    private String orderNumber;
 
 }

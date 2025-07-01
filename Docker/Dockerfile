@@ -1,4 +1,4 @@
 FROM amazoncorretto:17-alpine
-COPY order_service32.jar orderproject32.jar
+COPY order_service34.jar orderproject34.jar
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","orderproject32.jar"]
+ENTRYPOINT ["java","-jar","orderproject34.jar"]

@@ -16,16 +16,25 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.order_service.dto.DeliveryOkEvent;
+import com.example.order_service.dto.NotificationRequest;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import java.time.format.DateTimeFormatter;
+import java.security.SecureRandom;
 
 @Service
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderEventPublisher orderEventPublisher;
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    @Value("${notification.send.topic:notification-send}")
+    private String notificationSendTopic;
 
-    public OrderService(OrderRepository orderRepository, OrderEventPublisher orderEventPublisher) {
+    public OrderService(OrderRepository orderRepository, OrderEventPublisher orderEventPublisher, KafkaTemplate<String, Object> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.orderEventPublisher = orderEventPublisher;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Transactional
@@ -50,6 +59,9 @@ public class OrderService {
                     order.setIdempotencyKey(idempotencyKey);
                     order.setDeliverySlotId(request.getDeliverySlotId());
                     order.setDeliveryDate(request.getDeliveryDate());
+                    // Генерация уникального номера заказа
+                    String orderNumber = generateOrderNumber();
+                    order.setOrderNumber(orderNumber);
                     try {
                         order = orderRepository.save(order);
                     } catch (DataIntegrityViolationException e) {
@@ -91,10 +103,29 @@ public class OrderService {
                     order.setStatus("PAIDED");
                     orderRepository.save(order);
                     log.info("Статус заказа {} обновлён на PAIDED", orderId);
+                    // Отправка уведомления
+                    NotificationRequest notification = new NotificationRequest();
+                    notification.setUserId(order.getUserId());
+                    String notificationMessage = String.format(
+                        "Ваш заказ №%s успешно оформлен на сумму: %.2f. Дата доставки: %s",
+                        order.getOrderNumber(),
+                        order.getPrice() / 100.0,
+                        order.getDeliveryDate() != null ? order.getDeliveryDate().toString() : "-"
+                    );
+                    notification.setMessage(notificationMessage);
+                    kafkaTemplate.send(notificationSendTopic, notification);
+                    log.info("Уведомление отправлено в топик {}: {}", notificationSendTopic, notification);
                 });
             }
         } catch (Exception e) {
             log.error("Ошибка обработки события delivery-ok", e);
         }
+    }
+
+    // Генерация уникального номера заказа
+    private String generateOrderNumber() {
+        String time = java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        int rand = new SecureRandom().nextInt(9000) + 1000;
+        return time + rand;
     }
 }
